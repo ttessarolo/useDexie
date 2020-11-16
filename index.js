@@ -10,6 +10,7 @@ class DBDispatcher {
   constructor() {
     this.subscribers = new Map();
     this.subscriptions = new Map();
+    this.engaged = false;
   }
 
   dispatchChanges(changes) {
@@ -21,7 +22,10 @@ class DBDispatcher {
     }
   }
   subscribe(subscriberId, key, cb) {
-    db.on('changes', (changes) => this.dispatchChanges(changes));
+    if (!this.engaged) {
+      this.engaged = true;
+      db.on('changes', (changes) => this.dispatchChanges(changes));
+    }
 
     if (!this.subscribers.has(subscriberId)) {
       this.subscribers.set(subscriberId, key);
@@ -126,10 +130,12 @@ function composeWhere(query, where, join, forceWhere) {
 
       if (['or', 'where'].includes(joiner)) {
         //console.log(`query.${joiner}('${field}').${operator}(${Value})`);
-        query = eval(`query.${joiner}('${field}').${operator}(${Value})`);
+        query = new Function('query', `return query.${joiner}('${field}').${operator}(${Value})`)(
+          query
+        );
       } else {
         //console.log(`query.and(${filter.toString()})`, param);
-        query = eval(`query.and(${filter.toString()})`);
+        query = new Function('query', `return query.and(${filter.toString()})`)(query);
       }
     }
 
@@ -264,11 +270,12 @@ export function useDexie(name, ...params) {
 
     // Populate default DB
     db = new Dexie(name);
-    setDatabase(db);
 
     if (typeof schema === 'object') {
       db.version(version).stores(schema);
     }
+
+    setDatabase(db);
 
     cb && cb(db);
 
