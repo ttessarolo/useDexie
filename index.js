@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Dexie from 'dexie';
 import 'dexie-observable';
 import { nanoid } from 'nanoid';
@@ -48,12 +48,9 @@ const dbDispatcher = new DBDispatcher();
 function useSubscribeToDBChanges(key, cb) {
   const callerIdRef = useRef(nanoid());
 
-  const subscribe = useCallback(
-    (key, cb) => {
-      if (key) dbDispatcher.subscribe(callerIdRef.current, key, cb);
-    },
-    [dbName]
-  );
+  const subscribe = useCallback((key, cb) => {
+    if (key) dbDispatcher.subscribe(callerIdRef.current, key, cb);
+  }, []);
 
   useEffect(() => {
     if (key) dbDispatcher.subscribe(callerIdRef.current, key, cb);
@@ -69,14 +66,13 @@ function useSubscribeToDBChanges(key, cb) {
 function useDBTransaction(key, modes) {
   const keyRef = useRef(key);
   const modesRef = useRef(modes);
-  const txRef = useRef();
+  const txRef = useRef(false);
 
   const transact = useCallback((query, cb, cbError) => {
     const key = keyRef.current;
 
-    if (!key || txRef.current?.active) return;
+    if (!key || txRef.current.active) return;
 
-    console.time(timeLabel);
     db.transaction(modesRef.current || 'r', db[key], (tx) => {
       txRef.current = tx;
       return query(tx.table(key));
@@ -88,7 +84,7 @@ function useDBTransaction(key, modes) {
       });
   }, []);
 
-  const isFetching = useCallback(() => txRef.current?.active, []);
+  const isFetching = useCallback(() => txRef.current.active, []);
 
   useEffect(() => {
     if (key !== keyRef.current) keyRef.current = key;
@@ -245,74 +241,96 @@ function useDataType(TypeFunc, Table, params) {
     else if (typeof param === 'function') cb = param;
   });
 
-  const data = useDataSelectArray(Table, options, TypeFunc(idField));
+  const data = useDexieTable(Table, options, TypeFunc(idField));
 
   return cb && data ? cb(data) : data;
 }
 
-export function useDexie(dbName, dbSchema, dbVersion = 1) {
-  db = new Dexie(dbName);
+export function useDexie(name, ...params) {
+  const [database, setDatabase] = useState();
 
   useEffect(() => {
-    if (typeof dbSchema === 'function') dbSchema(db);
-    else if (typeof dbSchema === 'object') {
-      db.version(dbVersion).stores(dbSchema);
-    } else throw new Error('useDexie: DBSchema must be and object or a function');
+    if (database) return;
 
-    return () => Dexie.close();
+    let version = 1;
+    let schema;
+    let cb;
+
+    for (const param of params) {
+      if (typeof param === 'object') schema = param;
+      else if (typeof param === 'number') version = param;
+      else if (typeof param === 'function') cb = param;
+    }
+
+    // Populate default DB
+    db = new Dexie(name);
+    setDatabase(db);
+
+    if (typeof schema === 'object') {
+      db.version(version).stores(schema);
+    }
+
+    cb && cb(db);
+
+    return () => db && db.close();
   }, []);
 
-  return db;
+  return database;
 }
 
-export const useDexieArray = (Table, ...params) => {
+export const useDexieTable = (Table, ...params) => {
   const options = useMemo(() => (typeof params[0] === 'object' ? params[0] : {}), [params]);
   const cb = useMemo(() => (typeof params[0] === 'object' ? params[1] : params[0]), [params]);
   const [data] = useExecuteQuery(Table, options);
 
   if (!data) return;
-  return cb(data);
+  return cb ? cb(data) : data;
 };
 
 export const useDexieObj = (t, ...p) => useDataType(toObj, t, p);
 export const useDexieMap = (t, ...p) => useDataType(toMap, t, p);
 export const useDexieSet = (t, ...p) => useDataType(toSet, t, p);
 
-export function useDexieTable(Table, opts) {
-  const [data] = useExecuteQuery(Table, opts);
-  return data;
-}
-
 export function useDexieGetTable(Table, opts) {
   const [key, setKey] = useState(Table);
   const [options, setOptions] = useState(opts);
+  const cbRef = useRef();
   const [data, isFetching] = useExecuteQuery(key, options);
 
-  const cb = useCallback(
+  const func = useCallback(
     (...params) => {
       if (isFetching()) return;
 
       let id, opts, cb;
-
       params.forEach((param) => {
         if (typeof param === 'string') id = param;
         else if (typeof param === 'object') opts = param;
         else if (typeof param === 'function') cb = param;
       });
 
-      if (!isEqual(id, key) || !isEqual(opts, options)) {
-        setKey(id);
-        setOptions(opts);
+      cbRef.current = cb;
+
+      if ((id && !isEqual(id, key)) || (opts && !isEqual(opts, options))) {
+        if (id) setKey(id);
+        if (opts) setOptions(opts);
+
+        return;
       }
 
       if (data && cb) return cb(data);
-
       return data;
     },
     [key, options, data, isFetching]
   );
 
-  return cb;
+  useEffect(() => {
+    if (data && cbRef.current) {
+      cbRef.current(data);
+      cbRef.current = undefined;
+    }
+  }, [data]);
+
+  return func;
 }
 
 export function useDexieGetItem(Table, itemID, idField = 'id') {
@@ -364,10 +382,10 @@ export function useDexieGetItem(Table, itemID, idField = 'id') {
 }
 
 export function useDexieGetItemKey(Table) {
-  const getKeys = useDexieTable();
+  const getKeys = useDexieGetTable(Table);
 
   const cb = useCallback(
-    (Table, query, cb) => {
+    (query, cb) => {
       getKeys({ ...query, primaryKeys: true, limit: 1 }, (keys) => {
         cb && cb(keys[0]);
       });
@@ -428,15 +446,16 @@ export function useDexiePutItem(Table) {
 }
 
 export function useDexieUpdateItem(Table) {
-  const getKey = useDexieGetItemKey();
-  const getData = useDexieTable();
-  const [transact] = useDBTransaction(Table);
+  const getKey = useDexieGetItemKey(Table);
+  const getData = useDexieGetTable(Table);
+  const [transact] = useDBTransaction(Table, 'rw');
 
   const cb = useCallback(
     (query, cbOrItem) => {
-      getKey(Table, query, (key) => {
-        getData(Table, { ...query, limit: 1 }, (data) => {
+      getKey(query, (key) => {
+        getData({ ...query, limit: 1 }, (data) => {
           const item = data[0];
+          if (!item) return;
           const newItem = typeof cbOrItem === 'function' ? cbOrItem(item) : cbOrItem;
 
           transact(
@@ -445,7 +464,9 @@ export function useDexieUpdateItem(Table) {
 
               return dbTable;
             },
-            (data) => {}
+            (data) => {
+              return data;
+            }
           );
         });
       });
