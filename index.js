@@ -4,6 +4,7 @@ import 'dexie-observable';
 import { nanoid } from 'nanoid';
 import isEqual from 'lodash.isequal';
 
+const emptyObj = {};
 let db;
 
 class DBDispatcher {
@@ -49,56 +50,17 @@ class DBDispatcher {
 
 const dbDispatcher = new DBDispatcher();
 
-function useSubscribeToDBChanges(key, cb) {
-  const callerIdRef = useRef(nanoid());
-
-  const subscribe = useCallback((key, cb) => {
-    if (key) dbDispatcher.subscribe(callerIdRef.current, key, cb);
-  }, []);
-
-  useEffect(() => {
-    if (key) dbDispatcher.subscribe(callerIdRef.current, key, cb);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    return () => dbDispatcher.unsubscribe(callerIdRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return subscribe;
-}
-
-function useDBTransaction(key, modes) {
-  const keyRef = useRef(key);
-  const modesRef = useRef(modes);
-  const txRef = useRef(false);
-
-  const transact = useCallback((query, cb, cbError) => {
-    const key = keyRef.current;
-
-    if (!key || txRef.current.active) return;
-
-    db.transaction(modesRef.current || 'r', db[key], (tx) => {
-      txRef.current = tx;
-      return query(tx.table(key));
+function transaction(key, query, cb, cbError) {
+  db.transaction('rw!', db.table(key), (tx) => {
+    return query(tx.table(key));
+  })
+    .then((data) => {
+      return cb(data);
     })
-      .then((data) => cb(data))
-      .catch((error) => {
-        console.log('useDexie: transaction error', key, error);
-        cbError && cbError(error);
-      });
-  }, []);
-
-  const isFetching = useCallback(() => txRef.current.active, []);
-
-  useEffect(() => {
-    if (key !== keyRef.current) keyRef.current = key;
-
-    return () => {
-      if (Dexie.currentTransaction) Dexie.currentTransaction.abort();
-    };
-  }, [key]);
-
-  return [transact, isFetching];
+    .catch((error) => {
+      if (cbError) cbError(error);
+      else throw new Error(`useDexie: Transaction ${key}: ${error}`);
+    });
 }
 
 function composeWhere(query, where, join, forceWhere) {
@@ -146,54 +108,66 @@ function composeWhere(query, where, join, forceWhere) {
   return query;
 }
 
-function useComposeQuery() {
-  const cb = useCallback((dbTable, query = {}) => {
-    const {
-      where,
-      orderBy,
-      reverse,
-      offset,
-      limit,
-      filter,
-      count,
-      primaryKeys,
-      erase,
-      toArray = true,
-    } = query;
+function composeQuery(dbTable, query = emptyObj) {
+  const {
+    where,
+    orderBy,
+    reverse,
+    offset,
+    limit,
+    filter,
+    count,
+    primaryKeys,
+    erase,
+    toArray = true,
+  } = query;
 
-    const canOrderBy = orderBy
-      ? dbTable.schema.indexes.findIndex((i) => i.keyPath === orderBy) > -1 && !filter && !where
-      : false;
+  const canOrderBy = orderBy
+    ? dbTable.schema.indexes.findIndex((i) => i.keyPath === orderBy) > -1 && !filter && !where
+    : false;
 
-    if (where !== undefined && where.length > 0) dbTable = composeWhere(dbTable, where);
-    if (filter !== undefined) dbTable = dbTable.filter(filter);
-    if (canOrderBy) dbTable = dbTable.orderBy(orderBy);
-    if (reverse !== undefined) dbTable = dbTable.reverse();
-    if (offset !== undefined) dbTable = dbTable.offset(offset);
-    if (limit !== undefined) dbTable = dbTable.limit(limit);
-    if (count === true) dbTable = dbTable.count();
-    if (toArray && !count && !primaryKeys && !erase) dbTable = dbTable.toArray();
-    if (primaryKeys) dbTable = dbTable.primaryKeys();
-    if (erase === true) dbTable = dbTable.delete();
+  if (where !== undefined && where.length > 0) dbTable = composeWhere(dbTable, where);
+  if (filter !== undefined) dbTable = dbTable.filter(filter);
+  if (canOrderBy) dbTable = dbTable.orderBy(orderBy);
+  if (reverse !== undefined) dbTable = dbTable.reverse();
+  if (offset !== undefined) dbTable = dbTable.offset(offset);
+  if (limit !== undefined) dbTable = dbTable.limit(limit);
+  if (count === true) dbTable = dbTable.count();
+  if (toArray && !count && !primaryKeys && !erase) dbTable = dbTable.toArray();
+  if (primaryKeys) dbTable = dbTable.primaryKeys();
+  if (erase === true) dbTable = dbTable.delete();
 
-    return dbTable;
+  return dbTable;
+}
+
+function useSubscribeToDBChanges(key, cb) {
+  const callerIdRef = useRef(nanoid());
+
+  const subscribe = useCallback((key, cb) => {
+    if (key) dbDispatcher.subscribe(callerIdRef.current, key, cb);
   }, []);
 
-  return cb;
+  useEffect(() => {
+    if (key) dbDispatcher.subscribe(callerIdRef.current, key, cb);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => dbDispatcher.unsubscribe(callerIdRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return subscribe;
 }
 
 function useExecuteQuery(key, options) {
   const [rawData, setRawData] = useState();
   const dataRef = useRef();
   const optionsRef = useRef();
-  const composeQuery = useComposeQuery();
-  const [transact, isFetching] = useDBTransaction(key);
   const subscribeToChanges = useSubscribeToDBChanges();
 
   const execute = useCallback(() => {
     if (optionsRef.current === null) return;
-
-    transact(
+    transaction(
+      key,
       (dbTable) => composeQuery(dbTable, optionsRef.current),
       (data) => {
         if (!isEqual(dataRef.current, data)) {
@@ -202,7 +176,7 @@ function useExecuteQuery(key, options) {
         }
       }
     );
-  }, [composeQuery, transact]);
+  }, [key]);
 
   useEffect(() => {
     if (!isEqual(optionsRef.current, options)) {
@@ -215,7 +189,7 @@ function useExecuteQuery(key, options) {
     subscribeToChanges(key, () => execute());
   }, [execute, key, subscribeToChanges]);
 
-  return [rawData, isFetching];
+  return rawData;
 }
 
 const toObj = (idField = 'id') => (data) =>
@@ -237,7 +211,7 @@ const toSet = (idField = 'id') => (data) =>
   }, new Set());
 
 function useDataType(TypeFunc, Table, params) {
-  let options = {};
+  let options = emptyObj;
   let idField = 'id';
   let cb;
 
@@ -286,9 +260,9 @@ export function useDexie(name, ...params) {
 }
 
 export const useDexieTable = (Table, ...params) => {
-  const options = useMemo(() => (typeof params[0] === 'object' ? params[0] : {}), [params]);
+  const options = useMemo(() => (typeof params[0] === 'object' ? params[0] : emptyObj), [params]);
   const cb = useMemo(() => (typeof params[0] === 'object' ? params[1] : params[0]), [params]);
-  const [data] = useExecuteQuery(Table, options);
+  const data = useExecuteQuery(Table, options);
 
   if (!data) return;
   return cb ? cb(data) : data;
@@ -302,12 +276,10 @@ export function useDexieGetTable(Table, opts) {
   const [key, setKey] = useState(Table);
   const [options, setOptions] = useState(opts);
   const cbRef = useRef();
-  const [data, isFetching] = useExecuteQuery(key, options);
+  const data = useExecuteQuery(key, options);
 
   const func = useCallback(
     (...params) => {
-      if (isFetching()) return;
-
       let id, opts, cb;
       params.forEach((param) => {
         if (typeof param === 'string') id = param;
@@ -327,7 +299,7 @@ export function useDexieGetTable(Table, opts) {
       if (data && cb) return cb(data);
       return data;
     },
-    [key, options, data, isFetching]
+    [key, options, data]
   );
 
   useEffect(() => {
@@ -343,11 +315,11 @@ export function useDexieGetTable(Table, opts) {
 export function useDexieGetItem(Table, itemID, idField = 'id') {
   const idMap = useRef(new Set(itemID ? [itemID] : []));
   const [valuesMap, setValuesMap] = useState(new Map());
-  const [transact] = useDBTransaction(Table);
 
   const fetchValues = useCallback(
     async (cb) => {
-      transact(
+      transaction(
+        Table,
         (table) =>
           table
             .where(idField)
@@ -360,7 +332,7 @@ export function useDexieGetItem(Table, itemID, idField = 'id') {
         }
       );
     },
-    [idField, transact]
+    [idField, Table]
   );
 
   useSubscribeToDBChanges(Table, () => fetchValues());
@@ -404,49 +376,45 @@ export function useDexieGetItemKey(Table) {
 }
 
 export function useDexieDeleteItem(Table) {
-  const [transact] = useDBTransaction(Table, 'rw');
-
   const cb = useCallback(
     (key, cb) => {
-      transact(
+      transaction(
+        Table,
         (dbTable) => dbTable.delete(key),
         (data) => cb && cb(data)
       );
     },
-    [transact]
+    [Table]
   );
 
   return cb;
 }
 
 export function useDexieDeleteByQuery(Table) {
-  const [transact] = useDBTransaction(Table, 'rw');
-  const composeQuery = useComposeQuery();
-
   const cb = useCallback(
     (query, cb) => {
-      transact(
+      transaction(
+        Table,
         (dbTable) => composeQuery(dbTable, { ...query, erase: true }),
         (data) => cb && cb(data)
       );
     },
-    [composeQuery, transact]
+    [Table]
   );
 
   return cb;
 }
 
 export function useDexiePutItem(Table) {
-  const [transact] = useDBTransaction(Table, 'rw');
-
   const cb = useCallback(
     (item, cb) => {
-      transact(
+      transaction(
+        Table,
         (dbTable) => dbTable.put(item),
         (data) => cb && cb(data)
       );
     },
-    [transact]
+    [Table]
   );
 
   return cb;
@@ -455,7 +423,6 @@ export function useDexiePutItem(Table) {
 export function useDexieUpdateItem(Table) {
   const getKey = useDexieGetItemKey(Table);
   const getData = useDexieGetTable(Table);
-  const [transact] = useDBTransaction(Table, 'rw');
 
   const cb = useCallback(
     (query, cbOrItem) => {
@@ -465,7 +432,8 @@ export function useDexieUpdateItem(Table) {
           if (!item) return;
           const newItem = typeof cbOrItem === 'function' ? cbOrItem(item) : cbOrItem;
 
-          transact(
+          transaction(
+            Table,
             (dbTable) => {
               dbTable.put(newItem, key);
 
@@ -478,7 +446,7 @@ export function useDexieUpdateItem(Table) {
         });
       });
     },
-    [Table, getData, getKey, transact]
+    [Table, getData, getKey]
   );
 
   return cb;
