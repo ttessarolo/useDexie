@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.5](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.0.4%0Dv1.0.5) (2020-11-17)
+
+
+### Performance Improvements
+
+* simplified Transaction and Query without internal hooks + get rid of tx wait ([3a3b0df](https://github.com/ttessarolo/useDexie/commits/3a3b0df25f755d586fac366b40f81f1f19c8300a))
+
 ### [1.0.4](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.0.3%0Dv1.0.4) (2020-11-17)
 
 
