@@ -135,7 +135,7 @@ function composeWhere(query, where, join, forceWhere) {
         );
       } else {
         //console.log(`query.and(${filter.toString()})`, param);
-        query = new Function('query', `return query.and(${filter.toString()})`)(query);
+        query = new Function('query,param', `return query.and(${filter.toString()})`)(query, param);
       }
     }
 
