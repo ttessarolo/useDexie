@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.4](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.0.3%0Dv1.0.4) (2020-11-17)
+
+
+### Bug Fixes
+
+* param value in or operator for composeWhere ([1f4dbeb](https://github.com/ttessarolo/useDexie/commits/1f4dbeb58e3be261fc85a3bdfc4029ae2560483b))
+
 ### [1.0.3](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.0.2%0Dv1.0.3) (2020-11-16)
 
 
