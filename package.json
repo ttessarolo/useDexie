@@ -4,7 +4,7 @@
   "description": "React Hooks to use Dexie.js IndexDB library with ease",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest ./test/*.js",
     "commit": "git add . && git-cz",
     "version": "standard-version",
     "push": "git push --follow-tags",
@@ -37,14 +37,14 @@
     "eslint-plugin-prettier": "^3.1.4",
     "eslint-plugin-react": "^7.21.5",
     "eslint-plugin-react-hooks": "^4.0.0",
-    "prettier": "^2.1.2",
+    "prettier": "^2.2.0",
     "standard-version": "^9.0.0"
   },
   "dependencies": {
-    "dexie": "^3.0.2",
+    "dexie": "^3.0.3",
     "dexie-observable": "^3.0.0-beta.10",
     "lodash.isequal": "^4.5.0",
-    "nanoid": "^3.1.16"
+    "nanoid": "^3.1.18"
   },
   "peerDependencies": {
     "react": "^16.8"

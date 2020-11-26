@@ -50,7 +50,20 @@ class DBDispatcher {
 
 const dbDispatcher = new DBDispatcher();
 
-function transaction(key, query, cb, cbError) {
+// function transaction(key, query, cb, cbError) {
+//   db.transaction('rw!', db.table(key), (tx) => {
+//     return query(tx.table(key));
+//   })
+//     .then((data) => {
+//       return cb(data);
+//     })
+//     .catch((error) => {
+//       if (cbError) cbError(error);
+//       else throw new Error(`useDexie: Transaction ${key}: ${error}`);
+//     });
+// }
+
+function executeTransaction(key, query, cb, cbError) {
   db.transaction('rw!', db.table(key), (tx) => {
     return query(tx.table(key));
   })
@@ -61,6 +74,13 @@ function transaction(key, query, cb, cbError) {
       if (cbError) cbError(error);
       else throw new Error(`useDexie: Transaction ${key}: ${error}`);
     });
+}
+
+function transaction(key, query, cb, cbError) {
+  if (db.isOpen()) executeTransaction(key, query, cb, cbError);
+  else {
+    db.open().then(() => executeTransaction(key, query, cb, cbError));
+  }
 }
 
 function composeWhere(query, where, join, forceWhere) {
