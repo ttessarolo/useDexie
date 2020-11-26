@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.6](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.0.5%0Dv1.0.6) (2020-11-26)
+
+
+### Bug Fixes
+
+* check if db.isOpen() before transaction, if close -> db.open() ([4e548b9](https://github.com/ttessarolo/useDexie/commits/4e548b96250f11378de3dc1955dee2d8b024a1f7))
+
 ### [1.0.5](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.0.4%0Dv1.0.5) (2020-11-17)
 
 
