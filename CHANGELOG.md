@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.7](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.0.6%0Dv1.0.7) (2020-11-27)
+
+
+### Docs
+
+* updated Docs ([b30998f](https://github.com/ttessarolo/useDexie/commits/b30998fe1b7a19f33274a619260a623f1fe315eb))
+
 ### [1.0.6](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.0.5%0Dv1.0.6) (2020-11-26)
 
 
