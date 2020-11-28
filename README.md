@@ -1,4 +1,4 @@
-![useDexie](https://github.com/ttessarolo/useDexie/blob/main/images/logo.png)
+![useDexie](https://github.com/ttessarolo/useDexie/blob/main/images/logo.png?raw=true)
 
 React Hooks to use Dexie.js IndexDB library with ease
 
