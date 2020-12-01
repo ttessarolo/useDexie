@@ -70,7 +70,7 @@ npm install use-dexie
 Below is a simple example that shows how to instantiate useDexie, populate a simple database of Tasks and then query the database to receive the list of tasks and render them in the component. For a more detailed example see [Example: To-Do-List Create React App](#example-to-do-list-create-react-app).
 
 ```javascript
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { useDexie, useDexieTable } from 'use-dexie';
 
 function App() {
@@ -85,7 +85,9 @@ function App() {
 
   return (
     <div>
-      tasks.map((task) => <span>task.label</span>)
+      {tasks.map((task) => (
+        <span>task.label</span>
+      ))}
     </div>
   );
 }
