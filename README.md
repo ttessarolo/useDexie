@@ -20,11 +20,11 @@ The use-dexie hooks have been optimized to ensure:
 <!-- TOC -->
 
 - [Installation](#installation)
-- [Example](#example)
+- [Basic Usage](#basic-usage)
 - [Hooks](#hooks)
   - [useDexie](#usedexie)
     - [Params](#params)
-    - [useDexie Example](#usedexie-example)
+    - [Example](#example)
   - [useDexieTable](#usedexietable)
     - [Params](#params)
     - [Example Fetch entire Table](#example-fetch-entire-table)
@@ -45,7 +45,13 @@ The use-dexie hooks have been optimized to ensure:
   - [useDexieUpdateItem](#usedexieupdateitem)
   - [useDexieDeleteItem](#usedexiedeleteitem)
   - [useDexieDeleteByQuery](#usedexiedeletebyquery)
-- [Query Syntax](#query-syntax) - [Basic Where Clause](#basic-where-clause) - [Or Clause](#or-clause) - [And Clause](#and-clause) - [Pagination](#pagination) - [Count Results](#count-results)
+- [Query Syntax](#query-syntax)
+  - [Basic Where Clause](#basic-where-clause)
+  - [Or Clause](#or-clause)
+  - [And Clause](#and-clause)
+  - [Pagination](#pagination)
+  - [Count Results](#count-results)
+- [Example: To-Do-List Create React App](#example-to-do-list-create-react-app)
 
 <!-- /TOC -->
 
@@ -57,28 +63,15 @@ The use-dexie hooks have been optimized to ensure:
 npm install use-dexie
 ```
 
-# Example
+# Basic Usage
 
-<a id="markdown-example" name="example"></a>
+<a id="markdown-basic-usage" name="basic-usage"></a>
 
-Below is a simple example of a Create-React-App that implements a to-do list using all available hooks of use-dexie. Of course the use of some features in the example makes no practical sense except to show in practice the use of hooks.
+Below is a simple example that shows how to instantiate useDexie, populate a simple database of Tasks and then query the database to receive the list of tasks and render them in the component. For a more detailed example see [Example: To-Do-List Create React App](#example-to-do-list-create-react-app).
 
 ```javascript
 import React, { useState, useCallback } from 'react';
-import {
-  useDexie,
-  useDexieTable,
-  useDexiePutItem,
-  useDexieDeleteItem,
-  useDexieDeleteByQuery,
-  useDexieGetItem,
-  useDexieObj,
-  useDexieSet,
-  useDexieUpdateItem,
-  useDexieGetTable,
-} from 'use-dexie';
-
-import './App.css';
+import { useDexie, useDexieTable } from 'use-dexie';
 
 function App() {
   useDexie('TASKS_DB', { tasks: 'id, name, done' }, (db) => {
@@ -88,135 +81,14 @@ function App() {
     ]);
   });
 
-  const updateTask = useDexiePutItem('tasks');
-  const deepUpdateTask = useDexieUpdateItem('tasks');
-  const deleteTask = useDexieDeleteItem('tasks');
-  const deleteByQuery = useDexieDeleteByQuery('tasks');
-  const getTask = useDexieGetItem('tasks');
-  const allTask = useDexieObj('tasks');
-  const completedTask = useDexieSet(
-    'tasks',
-    {
-      where: [{ field: 'done', operator: 'equals', value: 'true' }],
-    },
-    'label'
-  );
-
   const tasks = useDexieTable('tasks') || [];
-  const getTasks = useDexieGetTable('tasks');
-  const [task, setTask] = useState();
-
-  const getTaskInfo = useCallback(
-    (id) => {
-      getTask(id, (task) => alert(JSON.stringify(task, null, 1)));
-    },
-    [getTask]
-  );
-
-  const deepTaskUpdate = useCallback(() => {
-    const id = 'T1';
-    deepUpdateTask({ where: [{ field: 'id', operator: 'equals', value: id }] }, (task) => {
-      task.done = 'true';
-      return task;
-    });
-  }, [deepUpdateTask]);
-
-  const getUncompleted = useCallback(() => {
-    getTasks({ where: [{ field: 'done', operator: 'equals', value: 'false' }] }, (tasks) => {
-      alert(JSON.stringify(tasks, null, 1));
-    });
-  }, [getTasks]);
 
   return (
-    <div className="App">
-      <table border="1">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Label</th>
-            <th>
-              <button
-                onClick={(e) =>
-                  deleteByQuery({ where: [{ field: 'done', operator: 'equals', value: 'true' }] })
-                }
-              >
-                Delete Competed
-              </button>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {tasks.map((task) => {
-            return (
-              <tr key={task.id}>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={task.done === 'true' ? true : false}
-                    onChange={() => {
-                      updateTask({ ...task, done: task.done === 'true' ? 'false' : 'true' });
-                    }}
-                  />
-                </td>
-                <td>
-                  <a
-                    href={task.id}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      getTaskInfo(task.id);
-                    }}
-                  >
-                    <span style={{ textDecoration: task.done === 'true' ? 'line-through' : '' }}>
-                      {task.label}
-                    </span>
-                  </a>
-                </td>
-                <td>
-                  <button onClick={(e) => deleteTask(task.id)}>Delete</button>
-                </td>
-              </tr>
-            );
-          })}
-          <tr>
-            <td colSpan="3">
-              <input type="text" onChange={(e) => setTask(e.target.value)} value={task || ''} />
-              <button
-                onClick={(e) => {
-                  if (task) {
-                    updateTask({ id: new Date().getTime(), label: task, done: false });
-                    setTask('');
-                  }
-                }}
-              >
-                ADD
-              </button>
-            </td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr>
-            <td>
-              <button onClick={(e) => alert(JSON.stringify(allTask, null, 1))}>All Tasks</button>
-            </td>
-            <td>
-              <button onClick={(e) => alert([...completedTask.keys()])}>Completed Tasks</button>
-            </td>
-            <td>
-              <button onClick={(e) => getUncompleted()}>Uncompleted Tasks</button>
-            </td>
-          </tr>
-          <tr>
-            <td colSpan="3">
-              <button onClick={(e) => deepTaskUpdate()}>Complete T1</button>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+    <div>
+      tasks.map((task) => <span>task.label</span>)
     </div>
   );
 }
-
-export default App;
 ```
 
 # Hooks
@@ -246,9 +118,9 @@ useDexie is the main hook that should be invoked mandatorily as soon as possible
 | dbVersion | The version number of DB.Please note that if you want to change an already deployed DB you must change DB version (please check [Dexie.js Documentation](https://dexie.org/docs/Tutorial/Design#database-versioning))                                     | 1                             |
 | callback  | useDexie returns the DB asynchronously as soon as it is instantiated. However, if you want to receive the DB synchronously so that you can update it, for example, you can specify a callback that will be called with the DB as soon as it is available. | See example below             |
 
-### useDexie Example
+### Example
 
-<a id="markdown-usedexie-example" name="usedexie-example"></a>
+<a id="markdown-example" name="example"></a>
 
 ```javascript
 useDexie('TASKS_DB', { tasks: 'id, name, done' }, (db) => {
@@ -284,7 +156,6 @@ useDexieTable can be used asynchronously by returning the result when available,
 | tableName | The name of the table to operate on                                                                                                                                                                             | "tasks"                                                         |
 | query     | Optional parameter to fetch data using useDexie [Query Syntax] (#query-syntax)                                                                                                                                  | { where:[{ field: 'done', operator: 'equals', value: 'true' }]} |
 | callback  | On optional callback to retrieve and process query/table results. Da notare che il risultato della callback viene restituito dalla funzione useDexieTable dando la possibilità di utilizzarla come un selector. | (results) => doSomething(results)                               |
-|           |
 
 ### Example Fetch entire Table
 
@@ -495,7 +366,7 @@ _Coming Soon_
 
 useDexie uses a simplified syntax to build queries for the DB. The syntax allows you to create multiple And and Or conditions, following the SQL logic as much as possible. The allowed operators for building queries are those provided by the Dexie.js library.
 
-### Basic Where Clause
+## Basic Where Clause
 
 <a id="markdown-basic-where-clause" name="basic-where-clause"></a>
 
@@ -505,7 +376,7 @@ useDexie uses a simplified syntax to build queries for the DB. The syntax allows
 }
 ```
 
-### Or Clause
+## Or Clause
 
 <a id="markdown-or-clause" name="or-clause"></a>
 
@@ -533,7 +404,7 @@ Alternatively you can set a query with a series of clauses in Or between them:
 }
 ```
 
-### And Clause
+## And Clause
 
 <a id="markdown-and-clause" name="and-clause"></a>
 
@@ -550,7 +421,7 @@ Given the nature of IndexDB and the way Dexie.js works, you can set queries in A
 }
 ```
 
-### Pagination
+## Pagination
 
 <a id="markdown-pagination" name="pagination"></a>
 
@@ -562,7 +433,7 @@ Given the nature of IndexDB and the way Dexie.js works, you can set queries in A
 }
 ```
 
-### Count Results
+## Count Results
 
 <a id="markdown-count-results" name="count-results"></a>
 
@@ -571,4 +442,166 @@ Given the nature of IndexDB and the way Dexie.js works, you can set queries in A
   where: [{ field: 'done', operator: 'equals', value: 'true' }],
   count: true
 }
+```
+
+# Example: To-Do-List (Create React App)
+
+<a id="markdown-example%3A-to-do-list-create-react-app" name="example%3A-to-do-list-create-react-app"></a>
+
+Below is a simple example of a Create-React-App that implements a to-do list using all available hooks of use-dexie. Of course the use of some features in the example makes no practical sense except to show in practice the use of hooks.
+
+```javascript
+import React, { useState, useCallback } from 'react';
+import {
+  useDexie,
+  useDexieTable,
+  useDexiePutItem,
+  useDexieDeleteItem,
+  useDexieDeleteByQuery,
+  useDexieGetItem,
+  useDexieObj,
+  useDexieSet,
+  useDexieUpdateItem,
+  useDexieGetTable,
+} from 'use-dexie';
+
+import './App.css';
+
+function App() {
+  useDexie('TASKS_DB', { tasks: 'id, name, done' }, (db) => {
+    db.tasks.bulkPut([
+      { id: 'T1', label: 'Learn useDexie', done: 'false' },
+      { id: 'T2', label: 'Advanced useDexie', done: 'false' },
+    ]);
+  });
+
+  const updateTask = useDexiePutItem('tasks');
+  const deepUpdateTask = useDexieUpdateItem('tasks');
+  const deleteTask = useDexieDeleteItem('tasks');
+  const deleteByQuery = useDexieDeleteByQuery('tasks');
+  const getTask = useDexieGetItem('tasks');
+  const allTask = useDexieObj('tasks');
+  const completedTask = useDexieSet(
+    'tasks',
+    {
+      where: [{ field: 'done', operator: 'equals', value: 'true' }],
+    },
+    'label'
+  );
+
+  const tasks = useDexieTable('tasks') || [];
+  const getTasks = useDexieGetTable('tasks');
+  const [task, setTask] = useState();
+
+  const getTaskInfo = useCallback(
+    (id) => {
+      getTask(id, (task) => alert(JSON.stringify(task, null, 1)));
+    },
+    [getTask]
+  );
+
+  const deepTaskUpdate = useCallback(() => {
+    const id = 'T1';
+    deepUpdateTask({ where: [{ field: 'id', operator: 'equals', value: id }] }, (task) => {
+      task.done = 'true';
+      return task;
+    });
+  }, [deepUpdateTask]);
+
+  const getUncompleted = useCallback(() => {
+    getTasks({ where: [{ field: 'done', operator: 'equals', value: 'false' }] }, (tasks) => {
+      alert(JSON.stringify(tasks, null, 1));
+    });
+  }, [getTasks]);
+
+  return (
+    <div className="App">
+      <table border="1">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Label</th>
+            <th>
+              <button
+                onClick={(e) =>
+                  deleteByQuery({ where: [{ field: 'done', operator: 'equals', value: 'true' }] })
+                }
+              >
+                Delete Competed
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {tasks.map((task) => {
+            return (
+              <tr key={task.id}>
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={task.done === 'true' ? true : false}
+                    onChange={() => {
+                      updateTask({ ...task, done: task.done === 'true' ? 'false' : 'true' });
+                    }}
+                  />
+                </td>
+                <td>
+                  <a
+                    href={task.id}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      getTaskInfo(task.id);
+                    }}
+                  >
+                    <span style={{ textDecoration: task.done === 'true' ? 'line-through' : '' }}>
+                      {task.label}
+                    </span>
+                  </a>
+                </td>
+                <td>
+                  <button onClick={(e) => deleteTask(task.id)}>Delete</button>
+                </td>
+              </tr>
+            );
+          })}
+          <tr>
+            <td colSpan="3">
+              <input type="text" onChange={(e) => setTask(e.target.value)} value={task || ''} />
+              <button
+                onClick={(e) => {
+                  if (task) {
+                    updateTask({ id: new Date().getTime(), label: task, done: false });
+                    setTask('');
+                  }
+                }}
+              >
+                ADD
+              </button>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>
+              <button onClick={(e) => alert(JSON.stringify(allTask, null, 1))}>All Tasks</button>
+            </td>
+            <td>
+              <button onClick={(e) => alert([...completedTask.keys()])}>Completed Tasks</button>
+            </td>
+            <td>
+              <button onClick={(e) => getUncompleted()}>Uncompleted Tasks</button>
+            </td>
+          </tr>
+          <tr>
+            <td colSpan="3">
+              <button onClick={(e) => deepTaskUpdate()}>Complete T1</button>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+
+export default App;
 ```
