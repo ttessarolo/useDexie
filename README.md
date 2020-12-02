@@ -1,19 +1,20 @@
 ![useDexie](https://github.com/ttessarolo/useDexie/blob/main/images/logo.png?raw=true)
 
-React Hooks to use Dexie.js IndexDB library with ease
+<center><h2>React Hooks to use Dexie.js IndexDB library</h2></center>
 
 ![NPM](https://img.shields.io/npm/v/use-dexie/latest)
 ![NPM](https://img.shields.io/npm/dw/use-dexie)
 ![NPM](https://img.shields.io/npm/l/use-dexie)
 ![Libraries.io dependency status for latest release](https://img.shields.io/librariesio/release/npm/use-dexie)
 
-Dexie.js is a gorgeous library to use **IndexDB** with simple and powerful syntax. However, if you want to use Dexie.js within a **React** project you need to implement a series of logics that allow asynchronous interaction. For this purpose, use-dexie is a library that includes a series of **React Hooks** that allow you to easily use IndexDB as a data source for React applications. In many cases the use of **use-dexie** allows to completely replace the use of status libraries such as Redux while ensuring a higher execution speed (data can be pre-loaded) and, of course, persistence.
+Dexie.js is a gorgeous library to use **IndexDB** with simple and powerful syntax. However, if you want to use Dexie.js within a **React** project you need to implement a series of logics that allow asynchronous interaction. For this purpose, useDexie is a library that includes a series of **React Hooks** that allow you to easily use IndexDB as a data source for React applications. In many cases **useDexie** allows you to completely replace status libraries such as Redux while ensuring a higher execution speed (data can be pre-loaded) and, of course, **persistency**.
 
 The use-dexie hooks have been optimized to ensure:
 
 - 🔥 Realtime Refresh of React elements that depend on a data source
 - ♻️ Minimizing the number of refreshes to bare minimum
 - ⚡️ Maximum Speed and Minimum memory footprint
+- 🔦 Dynamic Query Composition
 
 <h1>Index of Content</h1>
 
@@ -24,7 +25,7 @@ The use-dexie hooks have been optimized to ensure:
 - [Hooks](#hooks)
   - [useDexie](#usedexie)
     - [Params](#params)
-    - [Example](#example)
+    - [Example DB Initialize and Populate](#example-db-initialize-and-populate)
   - [useDexieTable](#usedexietable)
     - [Params](#params)
     - [Example Fetch entire Table](#example-fetch-entire-table)
@@ -42,16 +43,19 @@ The use-dexie hooks have been optimized to ensure:
   - [useDexieGetItem](#usedexiegetitem)
   - [useDexieGetItemKey](#usedexiegetitemkey)
   - [useDexiePutItem](#usedexieputitem)
+  - [useDexiePutItems](#usedexieputitems)
   - [useDexieUpdateItem](#usedexieupdateitem)
   - [useDexieDeleteItem](#usedexiedeleteitem)
   - [useDexieDeleteByQuery](#usedexiedeletebyquery)
 - [Query Syntax](#query-syntax)
-  - [Basic Where Clause](#basic-where-clause)
-  - [Or Clause](#or-clause)
-  - [And Clause](#and-clause)
+  - [Where Clause](#where-clause)
+    - [Or Clause](#or-clause)
+    - [And Clause](#and-clause)
+  - [Filtering](#filtering)
+  - [Order By](#order-by)
   - [Pagination](#pagination)
   - [Count Results](#count-results)
-- [Example: To-Do-List Create React App](#example-to-do-list-create-react-app)
+- [Example: To-Do-List with Create React App](#example-to-do-list-with-create-react-app)
 
 <!-- /TOC -->
 
@@ -120,9 +124,9 @@ useDexie is the main hook that should be invoked mandatorily as soon as possible
 | dbVersion | The version number of DB.Please note that if you want to change an already deployed DB you must change DB version (please check [Dexie.js Documentation](https://dexie.org/docs/Tutorial/Design#database-versioning))                                     | 1                             |
 | callback  | useDexie returns the DB asynchronously as soon as it is instantiated. However, if you want to receive the DB synchronously so that you can update it, for example, you can specify a callback that will be called with the DB as soon as it is available. | See example below             |
 
-### Example
+### Example DB Initialize and Populate
 
-<a id="markdown-example" name="example"></a>
+<a id="markdown-example-db-initialize-and-populate" name="example-db-initialize-and-populate"></a>
 
 ```javascript
 useDexie('TASKS_DB', { tasks: 'id, name, done' }, (db) => {
@@ -144,7 +148,7 @@ Array: results = useDexieTable((String: tableName), (Object: [query]), (Function
 useDexieTable is a hook to read data contained in a database table. It can be used in several ways:
 
 - to receive all entries of a table
-- to receive only one set of results depending on a query
+- to receive only one set of results depending on a [query](#query-syntax)
 - as a selector to select and process table content
 
 useDexieTable can be used asynchronously by returning the result when available, or a callback can be provided to process the result inline.
@@ -177,6 +181,17 @@ const task = useDexieTable('tasks', {
 });
 ```
 
+Optimized version using useMemo:
+
+```javascript
+//⚠️ Wrapping WhereClause in useMemo reduce updates
+
+const task = useDexieTable(
+  'tasks',
+  useMemo(() => ({ where: [{ field: 'done', operator: 'equals', value: 'true' }] }), [])
+);
+```
+
 ### Example Fetch Table with selector Callback
 
 <a id="markdown-example-fetch-table-with-selector-callback" name="example-fetch-table-with-selector-callback"></a>
@@ -194,6 +209,23 @@ const taskDone = useDexieTable('tasks', {
   ],
 });
 ```
+
+Optimized version using useMemo and useCallback:
+
+```javascript
+//⚠️ Wrapping WhereClause in useMemo and Callback in useCallback reduce updates
+const taskDone = useDexieTable('tasks', useMemo(() => ({ where: [{ field: 'done', operator: 'equals', value: 'true' }] }), []),
+    useCallback((results) => {
+      return results.map((result) => {
+        result.lastFetched = new Date();
+        return result;
+      });
+    },[]),
+  ],
+});
+```
+
+_*⚠️ Consider it a good (and suggested) practice to use useMemo to wrap QueryClause objects and useCallback for callbacks to optimize performance and reduce React updates.*_
 
 ## useDexieGetTable
 
@@ -344,6 +376,12 @@ _Coming Soon_
 
 _Coming Soon_
 
+## useDexiePutItems
+
+<a id="markdown-usedexieputitems" name="usedexieputitems"></a>
+
+_Coming Soon_
+
 ## useDexieUpdateItem
 
 <a id="markdown-usedexieupdateitem" name="usedexieupdateitem"></a>
@@ -366,11 +404,14 @@ _Coming Soon_
 
 <a id="markdown-query-syntax" name="query-syntax"></a>
 
-useDexie uses a simplified syntax to build queries for the DB. The syntax allows you to create multiple And and Or conditions, following the SQL logic as much as possible. The allowed operators for building queries are those provided by the Dexie.js library.
+useDexie uses a simplified syntax to build queries for the DB. The syntax allows you to create multiple And and Or conditions, following the SQL logic as much as possible.
 
-## Basic Where Clause
+## Where Clause
 
-<a id="markdown-basic-where-clause" name="basic-where-clause"></a>
+<a id="markdown-where-clause" name="where-clause"></a>
+
+Compose a QueryClause object is the primary solution to obtain a subset of data from a table.
+The allowed operators for building queries are those provided by the Dexie.js library [WhereClause](https://dexie.org/docs/WhereClause/WhereClause).
 
 ```javascript
 {
@@ -378,7 +419,22 @@ useDexie uses a simplified syntax to build queries for the DB. The syntax allows
 }
 ```
 
-## Or Clause
+The QueryClause object can be dynamically composed, and can be wrapped using React useMemo to optimize performance by reducing updates. If during the composition of the QueryClause object you want to "disable" the filtering operation, just return a null value to get all the records of the table.
+
+```javascript
+const [filter, setFilter] = useState();
+const tasks = useDexieTable(
+  'tasks',
+  useMemo(() => {
+    if (!filter) return null;
+    return {
+      where: [{ field: 'done', operator: 'equals', value: filter }],
+    };
+  }, [filter])
+);
+```
+
+### Or Clause
 
 <a id="markdown-or-clause" name="or-clause"></a>
 
@@ -406,7 +462,7 @@ Alternatively you can set a query with a series of clauses in Or between them:
 }
 ```
 
-## And Clause
+### And Clause
 
 <a id="markdown-and-clause" name="and-clause"></a>
 
@@ -420,6 +476,46 @@ Given the nature of IndexDB and the way Dexie.js works, you can set queries in A
   and:[
     { filter: "(obj) => param.includes(obj.id)", param:["T1","T2"] }
   ]
+}
+
+```
+
+Alternatively you can use an arrow function as filter
+
+```javascript
+{
+  where: [
+    { field: 'done', operator: 'equals', value: 'true' }
+  ],
+  and:[
+    { filter: (obj) => ["T1","T2"] .includes(obj.id) }
+  ]
+}
+
+```
+
+## Filtering
+
+<a id="markdown-filtering" name="filtering"></a>
+
+Alternatively to the composition of a QueryClause you can directly specify a _single_ function to filter the contents of a table you want to obtain. This solution is handy if you want to sort content rusltes. The orderBy option can only be activated with filtering and not by specifying a where clause.
+
+```javascript
+{
+  filter: filter: (obj) => ['T1', 'T2'].includes(obj.id);
+}
+```
+
+## Order By
+
+<a id="markdown-order-by" name="order-by"></a>
+
+The orderBy option can only be activated with filtering and not by specifying a where clause.
+
+```javascript
+{
+  filter: filter: (obj) => ['T1', 'T2'].includes(obj.id);
+  orderBy: 'label';
 }
 ```
 
@@ -446,9 +542,9 @@ Given the nature of IndexDB and the way Dexie.js works, you can set queries in A
 }
 ```
 
-# Example: To-Do-List (Create React App)
+# Example: To-Do-List with Create React App
 
-<a id="markdown-example%3A-to-do-list-create-react-app" name="example%3A-to-do-list-create-react-app"></a>
+<a id="markdown-example%3A-to-do-list-with-create-react-app" name="example%3A-to-do-list-with-create-react-app"></a>
 
 Below is a simple example of a Create-React-App that implements a to-do list using all available hooks of use-dexie. Of course the use of some features in the example makes no practical sense except to show in practice the use of hooks.
 

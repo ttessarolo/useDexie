@@ -130,12 +130,12 @@ function composeQuery(dbTable, query = emptyObj) {
   } = query;
 
   const canOrderBy = orderBy
-    ? dbTable.schema.indexes.findIndex((i) => i.keyPath === orderBy) > -1 && !filter && !where
+    ? dbTable.schema.indexes.findIndex((i) => i.keyPath === orderBy) > -1 && !where
     : false;
 
   if (where !== undefined && where.length > 0) dbTable = composeWhere(dbTable, where);
-  if (filter !== undefined) dbTable = dbTable.filter(filter);
   if (canOrderBy) dbTable = dbTable.orderBy(orderBy);
+  if (filter !== undefined) dbTable = dbTable.filter(filter);
   if (reverse !== undefined) dbTable = dbTable.reverse();
   if (offset !== undefined) dbTable = dbTable.offset(offset);
   if (limit !== undefined) dbTable = dbTable.limit(limit);
@@ -418,6 +418,21 @@ export function useDexiePutItem(Table) {
       transaction(
         Table,
         (dbTable) => dbTable.put(item),
+        (data) => cb && cb(data)
+      );
+    },
+    [Table]
+  );
+
+  return cb;
+}
+
+export function useDexiePutItems(Table) {
+  const cb = useCallback(
+    (items, cb) => {
+      transaction(
+        Table,
+        (dbTable) => dbTable.bulkPut(items),
         (data) => cb && cb(data)
       );
     },
