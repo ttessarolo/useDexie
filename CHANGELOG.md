@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.13](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.0.12%0Dv1.0.13) (2020-12-02)
+
+
+### Others
+
+* updated Docs + Added useDexiePutItems hoow, Fix: reverse order for orderBy and filter ([ffb5789](https://github.com/ttessarolo/useDexie/commits/ffb5789bb186e60cae75128ce2c694e4e2142021))
+
 ### [1.0.12](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.0.11%0Dv1.0.12) (2020-12-01)
 
 
