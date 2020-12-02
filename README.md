@@ -225,7 +225,7 @@ const taskDone = useDexieTable('tasks', useMemo(() => ({ where: [{ field: 'done'
 });
 ```
 
-_*⚠️ Consider it a good (and suggested) practice to use useMemo to wrap QueryClause objects and useCallback for callbacks to optimize performance and reduce React updates.*_
+_*⚠️ Consider it a good (and suggested) practice to use useMemo to wrap WhereClause objects and useCallback for callbacks to optimize performance and reduce React updates.*_
 
 ## useDexieGetTable
 
@@ -426,7 +426,7 @@ useDexie uses a simplified syntax to build queries for the DB. The syntax allows
 
 <a id="markdown-where-clause" name="where-clause"></a>
 
-Compose a QueryClause object is the primary solution to obtain a subset of data from a table.
+Compose a WhereClause object is the primary solution to obtain a subset of data from a table.
 The allowed operators for building queries are those provided by the Dexie.js library [WhereClause](https://dexie.org/docs/WhereClause/WhereClause).
 
 ```javascript
@@ -435,7 +435,7 @@ The allowed operators for building queries are those provided by the Dexie.js li
 }
 ```
 
-The QueryClause object can be dynamically composed, and can be wrapped using React useMemo to optimize performance by reducing updates. If during the composition of the QueryClause object you want to "disable" the filtering operation, just return a null value to get all the records of the table.
+The WhereClause object can be dynamically composed, and can be wrapped using React useMemo to optimize performance by reducing updates. If during the composition of the WhereClause object you want to "disable" the filtering operation, just return a null value to get all the records of the table.
 
 ```javascript
 const [filter, setFilter] = useState();
@@ -459,11 +459,13 @@ It is possible to set queries with a main where clause and a series of clauses i
 ```javascript
 {
   where: [
-    { field: 'done', operator: 'equals', value: 'true' }
-  ],
-  or:[
-    { field: 'id', operator: 'oneOf', value: ["T1","T2"] }
-  ]
+    {
+      field: 'done',
+      operator: 'equals',
+      value: 'true',
+      or: [{ field: 'id', operator: 'oneOf', value: ['T1', 'T2'] }],
+    },
+  ];
 }
 ```
 
@@ -487,13 +489,14 @@ Given the nature of IndexDB and the way Dexie.js works, you can set queries in A
 ```javascript
 {
   where: [
-    { field: 'done', operator: 'equals', value: 'true' }
-  ],
-  and:[
-    { filter: "(obj) => param.includes(obj.id)", param:["T1","T2"] }
-  ]
+    {
+      field: 'done',
+      operator: 'equals',
+      value: 'true',
+      and: [{ filter: '(obj) => param.includes(obj.id)', param: ['T1', 'T2'] }],
+    },
+  ];
 }
-
 ```
 
 Alternatively you can use an arrow function as filter
@@ -501,20 +504,21 @@ Alternatively you can use an arrow function as filter
 ```javascript
 {
   where: [
-    { field: 'done', operator: 'equals', value: 'true' }
-  ],
-  and:[
-    { filter: (obj) => ["T1","T2"] .includes(obj.id) }
-  ]
+    {
+      field: 'done',
+      operator: 'equals',
+      value: 'true',
+      and: [{ filter: (obj) => ['T1', 'T2'].includes(obj.id) }],
+    },
+  ];
 }
-
 ```
 
 ## Filtering
 
 <a id="markdown-filtering" name="filtering"></a>
 
-Alternatively to the composition of a QueryClause you can directly specify a _single_ function to filter the contents of a table you want to obtain. This solution is handy if you want to sort content rusltes. The orderBy option can only be activated with filtering and not by specifying a where clause.
+Alternatively to the composition of a WhereClause you can directly specify a _single_ function to filter the contents of a table you want to obtain. This solution is handy if you want to sort content rusltes. The orderBy option can only be activated with filtering and not by specifying a where clause.
 
 ```javascript
 {
