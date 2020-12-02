@@ -1,6 +1,6 @@
 {
   "name": "use-dexie",
-  "version": "1.0.14",
+  "version": "1.0.15",
   "description": "React Hooks to use Dexie.js IndexDB library with ease",
   "main": "index.js",
   "scripts": {
