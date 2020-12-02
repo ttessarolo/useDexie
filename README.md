@@ -300,6 +300,14 @@ const taskObj = useDexieObj('task');
 return <span>{taskObk.T1.label}</span>;
 ```
 
+Using useDexieObj as selector:
+
+```javascript
+const T1 = useDexieObj('task', (task) => task.T1);
+
+return <span>{T1.label}</span>;
+```
+
 ## useDexieMap
 
 <a id="markdown-usedexiemap" name="usedexiemap"></a>
@@ -327,6 +335,14 @@ const taskMap = useDexieMap('task');
   */
 
 return <span>{taskMap.get('T1').label}</span>;
+```
+
+Using useDexieMap as selector:
+
+```javascript
+const T1 = useDexieMap('task', (task) => task.get('T1'));
+
+return <span>{T1.label}</span>;
 ```
 
 ## useDexieSet
@@ -515,7 +531,7 @@ The orderBy option can only be activated with filtering and not by specifying a 
 ```javascript
 {
   filter: filter: (obj) => ['T1', 'T2'].includes(obj.id);
-  orderBy: 'label';
+  orderBy: 'name';
 }
 ```
 
