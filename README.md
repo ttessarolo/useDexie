@@ -41,11 +41,27 @@ The use-dexie hooks have been optimized to ensure:
   - [useDexieSet](#usedexieset)
     - [Example](#example)
   - [useDexieGetItem](#usedexiegetitem)
+    - [Params](#params)
+    - [Callback Params](#callback-params)
+    - [Example: Direct](#example-direct)
+    - [Example: Callback](#example-callback)
   - [useDexieGetItemKey](#usedexiegetitemkey)
+    - [Params](#params)
+    - [Callback Params](#callback-params)
+    - [Example](#example)
   - [useDexiePutItem](#usedexieputitem)
+    - [Params](#params)
+    - [Callback Params](#callback-params)
+    - [Example](#example)
   - [useDexiePutItems](#usedexieputitems)
+    - [Params](#params)
+    - [Callback Params](#callback-params)
+    - [Example](#example)
   - [useDexieUpdateItem](#usedexieupdateitem)
   - [useDexieDeleteItem](#usedexiedeleteitem)
+    - [Params](#params)
+    - [Callback Params](#callback-params)
+    - [Example](#example)
   - [useDexieDeleteByQuery](#usedexiedeletebyquery)
 - [Query Syntax](#query-syntax)
   - [Where Clause](#where-clause)
@@ -378,37 +394,275 @@ return <span>{taskSet.as('T1') ? 'Task T1 is here' : 'no T1 in task list'}</span
 
 <a id="markdown-usedexiegetitem" name="usedexiegetitem"></a>
 
-_Coming Soon_
+```javascript
+Object: results || Function: callback = useDexieGetItem((String: tableName), (String: [itemId]), (String: [idField]));
+```
+
+useDexieGetItem is a versatile hook that aims to return an object in a table. It can be used in two different ways: "direct" or "deferred" mode as detailed below.
+
+### Params
+
+<a id="markdown-params" name="params"></a>
+
+|           | Description                                                                                                                                                                                                                      | Example |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| tableName | The name of the table to operate on                                                                                                                                                                                              | "tasks" |
+| itemId    | The value of the key you want to find. It is of course possible to search for items only through the (or one of) primary keys that you have set in the database schema. The default key that is used by useDexieGetItem is "id". | "T1"    |
+| idField   | If you want to operate useDexieGetItem on another primary key than the default one ("id") you can use this parameter to specify the name of the key.                                                                             | "id"    |
+
+If it is used in "deferred" mode and therefore if you do not directly specify the itemId useDexieGetItem returns a callback:
+
+```javascript
+function((String: itemId), (Function: [callback]));
+```
+
+### Callback Params
+
+<a id="markdown-callback-params" name="callback-params"></a>
+
+|          | Description                                         | Example |
+| -------- | --------------------------------------------------- | ------- |
+| itemId   | The value of the key you want to find.              | "T1"    |
+| callback | An optional callback that returns the searched item | "id"    |
+
+### Example: Direct
+
+<a id="markdown-example%3A-direct" name="example%3A-direct"></a>
+
+The first way is to specify the Id of the content directly in the invocation phase. In this way useDexieGetItem returns the object with the key specified in the way and therefore as soon as it is available:
+
+```javascript
+// The default field where the search is performed is "id"
+const task = useDexieGetItem('task', 'T1');
+```
+
+### Example: Callback
+
+<a id="markdown-example%3A-callback" name="example%3A-callback"></a>
+
+The second way is to specify only the name of the table you want to operate on. In this way useDexieGetItem returns a callback function that can be used within the business logic of the React component.
+
+```javascript
+const [default, setDefault] = useState();
+const getTask = useDexieGetItem('task');
+
+// Synchronous mode: the result could be undefined on the first invocation
+const getTaskById = useCallback((id) => {
+  const task = getTask(id);
+  return task || {};
+}, []);
+
+// Asynchronous mode: provide a callback to get the result as soon as available
+const setDefaultTask = useCallback((id) => {
+  getTask(id, (task) => {
+    setDefault(task);
+  });
+}, []);
+```
 
 ## useDexieGetItemKey
 
 <a id="markdown-usedexiegetitemkey" name="usedexiegetitemkey"></a>
 
-_Coming Soon_
+```javascript
+Function: callback = useDexieGetItemKey((String: tableName));
+```
+
+This hook allows you to search for an item in the database and to have its Primary Key as return value.
+
+### Params
+
+<a id="markdown-params" name="params"></a>
+
+|           | Description                         | Example |
+| --------- | ----------------------------------- | ------- |
+| tableName | The name of the table to operate on | "tasks" |
+
+It returns a callback that can be used within the business logic of the React component.
+
+```javascript
+function((Object: query), (Function: [callback]));
+```
+
+### Callback Params
+
+<a id="markdown-callback-params" name="callback-params"></a>
+
+|          | Description                                         | Example |
+| -------- | --------------------------------------------------- | ------- |
+| query    | The value of the key you want to find.              | "T1"    |
+| callback | An optional callback that returns the searched item | "id"    |
+
+### Example
+
+<a id="markdown-example" name="example"></a>
+
+```javascript
+// The primary key (++) is an auto-generated and auto-incremented id
+useDexie('BOOKS_DB', { books: '++, ISBN, title' }, (db) => {
+  db.tasks.bulkPut([
+    { id: '1', ISBN: 'ABCD1234', title: 'Master React' },
+    { id: '2', ISBN: 'EFGH5678', title: 'React for Dummies' },
+  ]);
+});
+
+const getBookId = useDexieGetItemKey('books');
+
+const getIdByISBN = usecallback((ISBN) => {
+  const id = getBookId({ where: [{ field: 'ISBN', operato: 'equals', value: ISBN }] });
+
+  return id;
+}, []);
+```
 
 ## useDexiePutItem
 
 <a id="markdown-usedexieputitem" name="usedexieputitem"></a>
 
-_Coming Soon_
+```javascript
+Function: callback = useDexiePutItem((String: tableName));
+```
+
+This hook allows you to insert an item into a database table. The operation is performed in "upsert" mode i.e. if the item does not exist it is created, if an item with the same primary key already exists it is updated.
+
+### Params
+
+<a id="markdown-params" name="params"></a>
+
+|           | Description                         | Example |
+| --------- | ----------------------------------- | ------- |
+| tableName | The name of the table to operate on | "tasks" |
+
+It returns a callback that can be used within the business logic of the React component.
+
+```javascript
+function((Object: item), (Function: [callback]));
+```
+
+### Callback Params
+
+<a id="markdown-callback-params" name="callback-params"></a>
+
+|          | Description                                              | Example                                        |
+| -------- | -------------------------------------------------------- | ---------------------------------------------- |
+| item     | The item you want to insert                              | { id: 'T3', label: 'Have fun', done: 'false' } |
+| callback | An optional callback that returns when operation is done | () => alert("All Done!")                       |
+
+### Example
+
+<a id="markdown-example" name="example"></a>
+
+```javascript
+const putTask = useDexiePutItem('task');
+
+const handleUpdateTask = useCallback((task) => {
+  putTask(task, () => {
+    alert(`Task ${task.id} updated!`);
+  });
+}, []);
+```
+
+_Documentation: Coming Soon_
 
 ## useDexiePutItems
 
 <a id="markdown-usedexieputitems" name="usedexieputitems"></a>
 
-_Coming Soon_
+```javascript
+Function: callback = useDexiePutItem((String: tableName));
+```
+
+This hook allows you to insert multiple items into a database table. The operation is performed in "upsert" mode i.e. if an item does not exist it is created, if an item with the same primary key already exists it is updated.
+
+### Params
+
+<a id="markdown-params" name="params"></a>
+
+|           | Description                         | Example |
+| --------- | ----------------------------------- | ------- |
+| tableName | The name of the table to operate on | "tasks" |
+
+It returns a callback that can be used within the business logic of the React component.
+
+```javascript
+function((Array: items), (Function: [callback]));
+```
+
+### Callback Params
+
+<a id="markdown-callback-params" name="callback-params"></a>
+
+|          | Description                                              | Example                                                                                          |
+| -------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| items    | The Array of items you want to insert                    | [{ id: 'T3', label: 'Have fun', done: 'false' },{ id: 'T4', label: 'Play Hard', done: 'false' }] |
+| callback | An optional callback that returns when operation is done | () => alert("All Done!")                                                                         |
+
+### Example
+
+<a id="markdown-example" name="example"></a>
+
+```javascript
+const putTasks = useDexiePutItems('task');
+
+const handleUpdateTasks = useCallback((tasks) => {
+  putTasks(tasks, () => {
+    alert(`Tasks: ${tasks.map((t) => t.id).join(',')} updated!`);
+  });
+}, []);
+```
 
 ## useDexieUpdateItem
 
 <a id="markdown-usedexieupdateitem" name="usedexieupdateitem"></a>
 
-_Coming Soon_
+_Documentation: Coming Soon_
 
 ## useDexieDeleteItem
 
 <a id="markdown-usedexiedeleteitem" name="usedexiedeleteitem"></a>
 
-_Coming Soon_
+```javascript
+Function: callback = useDexiePutItem((String: tableName));
+```
+
+This hook allows you to delete an item from a database table.
+
+### Params
+
+<a id="markdown-params" name="params"></a>
+
+|           | Description                         | Example |
+| --------- | ----------------------------------- | ------- |
+| tableName | The name of the table to operate on | "tasks" |
+
+It returns a callback that can be used within the business logic of the React component.
+
+```javascript
+function((Object: item), (Function: [callback]));
+```
+
+### Callback Params
+
+<a id="markdown-callback-params" name="callback-params"></a>
+
+|          | Description                                              | Example                  |
+| -------- | -------------------------------------------------------- | ------------------------ |
+| item     | The item you want to delete                              | "T1"                     |
+| callback | An optional callback that returns when operation is done | () => alert("All Done!") |
+
+### Example
+
+<a id="markdown-example" name="example"></a>
+
+```javascript
+const deleteTask = useDexieDeleteItem('task');
+
+const handleDeleteTask = useCallback((task) => {
+  deleteTask(task, () => {
+    alert(`Task ${task.id} deleted!`);
+  });
+}, []);
+```
 
 ## useDexieDeleteByQuery
 
