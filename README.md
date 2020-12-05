@@ -58,11 +58,17 @@ The use-dexie hooks have been optimized to ensure:
     - [Callback Params](#callback-params)
     - [Example](#example)
   - [useDexieUpdateItem](#usedexieupdateitem)
+    - [Params](#params)
+    - [Callback Params](#callback-params)
+    - [Example](#example)
   - [useDexieDeleteItem](#usedexiedeleteitem)
     - [Params](#params)
     - [Callback Params](#callback-params)
     - [Example](#example)
   - [useDexieDeleteByQuery](#usedexiedeletebyquery)
+    - [Params](#params)
+    - [Callback Params](#callback-params)
+    - [Example](#example)
 - [Query Syntax](#query-syntax)
   - [Where Clause](#where-clause)
     - [Or Clause](#or-clause)
@@ -562,8 +568,6 @@ const handleUpdateTask = useCallback((task) => {
 }, []);
 ```
 
-_Documentation: Coming Soon_
-
 ## useDexiePutItems
 
 <a id="markdown-usedexieputitems" name="usedexieputitems"></a>
@@ -615,7 +619,52 @@ const handleUpdateTasks = useCallback((tasks) => {
 
 <a id="markdown-usedexieupdateitem" name="usedexieupdateitem"></a>
 
-_Documentation: Coming Soon_
+```javascript
+Function: callback = useDexieUpdateItem((String: tableName));
+```
+
+This hook is very convenient as a shortcut to take an item from a table, modify it and then update it without having to use the two hooks useDexieGetItem and useDexiePutItem.
+
+### Params
+
+<a id="markdown-params" name="params"></a>
+
+|           | Description                         | Example |
+| --------- | ----------------------------------- | ------- |
+| tableName | The name of the table to operate on | "tasks" |
+
+It returns a callback that can be used within the business logic of the React component.
+
+```javascript
+function((Object: query), (Function: [callback]));
+```
+
+### Callback Params
+
+<a id="markdown-callback-params" name="callback-params"></a>
+
+|          | Description                                                                                                                                                                                                                                     | Example                                                       |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| query    | WhereClause Object to get the item you want to modify. WhereClause must be in useDexie [Query Syntax] (#query-syntax)                                                                                                                           | `{ where:[{ field: 'id', operator: 'equals', value: 'T1' }]}` |
+| callback | As a second parameter you can pass a callback function that will be invoked by passing the item found in the table. This function, once the item has been modified, must return it as a return value so that it can be updated in the database. | `(item) => { item.done = "true"; return item;}`               |
+
+### Example
+
+<a id="markdown-example" name="example"></a>
+
+```javascript
+const updateTask = useDexieUpdateItem('task');
+
+const taskUpdate = useCallback(
+  (id) => {
+    updateTask({ where: [{ field: 'id', operator: 'equals', value: id }] }, (task) => {
+      task.done = 'true';
+      return task;
+    });
+  },
+  [updateTask]
+);
+```
 
 ## useDexieDeleteItem
 
@@ -668,7 +717,48 @@ const handleDeleteTask = useCallback((task) => {
 
 <a id="markdown-usedexiedeletebyquery" name="usedexiedeletebyquery"></a>
 
-_Coming Soon_
+```javascript
+Function: callback = useDexieDeleteByQuery((String: tableName));
+```
+
+This hook allows you to delete multiple items simultaneously from a database table.
+
+### Params
+
+<a id="markdown-params" name="params"></a>
+
+|           | Description                         | Example |
+| --------- | ----------------------------------- | ------- |
+| tableName | The name of the table to operate on | "tasks" |
+
+It returns a callback that can be used within the business logic of the React component.
+
+```javascript
+function((Object: query), (Function: [callback]));
+```
+
+### Callback Params
+
+<a id="markdown-callback-params" name="callback-params"></a>
+
+|          | Description                                                                                                           | Example                                                           |
+| -------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| query    | WhereClause Object to get the item you want to delete. WhereClause must be in useDexie [Query Syntax] (#query-syntax) | `{ where:[{ field: 'done', operator: 'equals', value: 'true' }]}` |
+| callback | As a second parameter you can pass a callback function that will be invoked when the delete operation is done.        | `() => alert("All Done Deleted!");`                               |
+
+### Example
+
+<a id="markdown-example" name="example"></a>
+
+```javascript
+const deleteByQuery = useDexieDeleteByQuery('task');
+
+const deleteDoneTasks = useCallback(() => {
+  deleteByQuery({ where: [{ field: 'done', operator: 'equals', value: 'true' }] });
+}, [updateTask]);
+
+return <button onClick={deleteDoneTasks}>Delete Done</button>;
+```
 
 # Query Syntax
 
