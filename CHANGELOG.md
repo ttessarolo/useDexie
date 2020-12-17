@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.1.0%0Dv1.2.0) (2020-12-17)
+
+
+### Features
+
+* implemented useDexieMonitor hook to live monitor db stats and performance ([3cf44d1](https://github.com/ttessarolo/useDexie/commits/3cf44d1b6ef9c82ef632053a9999f9df9fab8611))
+
 ## [1.1.0](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.0.16%0Dv1.1.0) (2020-12-05)
 
 
