@@ -6,12 +6,69 @@ import isEqual from 'lodash.isequal';
 
 const emptyObj = {};
 let db;
+let monitor = false;
 
+class TransactionMonitor {
+  constructor() {
+    this.active = new Map();
+    this.fulfilled = new Map();
+    this.maxActive = 0;
+    this.elapsed = [];
+  }
+
+  getStats() {
+    const active = this.active.size;
+    const fulfilled = this.fulfilled.size;
+    const avg = (this.elapsed.reduce((acc, val) => acc + val, 0) / this.elapsed.length).toFixed(2);
+    const avgLast10 = (
+      this.elapsed.slice(0, 10).reduce((acc, val) => acc + val, 0) / this.elapsed.length
+    ).toFixed(2);
+
+    return {
+      maxActive: this.maxActive,
+      active,
+      fulfilled,
+      avg,
+      avgLast10,
+    };
+  }
+
+  start() {
+    const id = nanoid();
+    const startTime = Date.now();
+    this.active.set(id, { id, startTime, open: true });
+
+    const active = this.active.size;
+    if (active > this.maxActive) this.maxActive = active;
+
+    return id;
+  }
+
+  end(id) {
+    const tx = this.active.get(id);
+    const elapsed = Date.now() - tx.startTime;
+
+    this.elapsed.push(elapsed);
+    this.active.delete(id);
+    this.fulfilled.set(id, { id, elapsed, open: false });
+  }
+}
 class DBDispatcher {
   constructor() {
     this.subscribers = new Map();
     this.subscriptions = new Map();
     this.engaged = false;
+  }
+
+  getStats() {
+    const subscribers = this.subscribers.size;
+    const subscriptions = this.subscriptions.size;
+
+    return {
+      subscriptions,
+      tables: [...this.subscriptions.keys()],
+      subscribers,
+    };
   }
 
   dispatchChanges(changes) {
@@ -41,7 +98,9 @@ class DBDispatcher {
     const key = this.subscribers.get(subscriberId);
     if (key) {
       const subscriptions = this.subscriptions.get(key).filter((s) => s.id !== subscriberId);
-      this.subscriptions.set(key, subscriptions);
+
+      if (subscriptions.length === 0) this.subscriptions.delete(key);
+      else this.subscriptions.set(key, subscriptions);
     }
 
     this.subscribers.delete(subscriberId);
@@ -49,15 +108,20 @@ class DBDispatcher {
 }
 
 const dbDispatcher = new DBDispatcher();
+const trxMonitor = new TransactionMonitor();
 
 function executeTransaction(key, query, cb, cbError) {
+  let txId = monitor ? trxMonitor.start() : null;
+
   db.transaction('rw!', db.table(key), (tx) => {
     return query(tx.table(key));
   })
     .then((data) => {
+      if (txId) trxMonitor.end(txId);
       return cb(data);
     })
     .catch((error) => {
+      if (txId) trxMonitor.end(txId);
       if (cbError) cbError(error);
       else throw new Error(`useDexie: Transaction ${key}: ${error}`);
     });
@@ -265,6 +329,27 @@ export function useDexie(name, ...params) {
 
   return database;
 }
+
+export const useDexieMonitor = (freq) => {
+  const [data, setData] = useState({});
+
+  useEffect(() => {
+    if (!freq) return null;
+
+    monitor = true;
+
+    const interval = setInterval(() => {
+      const dispatch = dbDispatcher.getStats();
+      const tx = trxMonitor.getStats();
+
+      setData({ ...dispatch, ...tx });
+    }, freq);
+
+    return () => clearInterval(interval);
+  }, [freq]);
+
+  return data;
+};
 
 export const useDexieTable = (Table, ...params) => {
   const options = useMemo(() => (typeof params[0] === 'object' ? params[0] : emptyObj), [params]);

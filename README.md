@@ -15,6 +15,7 @@ The use-dexie hooks have been optimized to ensure:
 - ♻️ Minimizing the number of refreshes to bare minimum
 - ⚡️ Maximum Speed and Minimum memory footprint
 - 🔦 Dynamic Query Composition
+- 🕵🏻‍♂️ Performance and Stats Live monitoring
 
 <h1>Index of Content</h1>
 
@@ -68,6 +69,8 @@ The use-dexie hooks have been optimized to ensure:
   - [useDexieDeleteByQuery](#usedexiedeletebyquery)
     - [Params](#params)
     - [Callback Params](#callback-params)
+    - [Example](#example)
+  - [useDexieMonitor](#usedexiemonitor)
     - [Example](#example)
 - [Query Syntax](#query-syntax)
   - [Where Clause](#where-clause)
@@ -758,6 +761,61 @@ const deleteDoneTasks = useCallback(() => {
 }, [updateTask]);
 
 return <button onClick={deleteDoneTasks}>Delete Done</button>;
+```
+
+## useDexieMonitor
+
+<a id="markdown-usedexiemonitor" name="usedexiemonitor"></a>
+
+This hook is designed exclusively for Development mode and provides a set of statistical data on database usage at a set frequency. It is useful if you want to implement a small component to monitor the usage and performance of the database during the development phase.
+
+```javascript
+Object: data = useDexieMonitor((Number: refresh || null));
+```
+
+### Example
+
+<a id="markdown-example" name="example"></a>
+
+```javascript
+// DEMO COMPONENT TO VISUALIZE useDexieMonitor
+const devMode = process.env.NODE_ENV === 'development';
+
+export default function Monitor(props) {
+  const data = useDexieMonitor(devMode ? 500 : null); // if you pass null monitor don't start, otherwise it refresh at freq you passed (in millisecs)
+
+  if (!devMode) return null;
+
+  return (
+    <div className={styles.container}>
+      {Object.entries(data).map(([key, values]) => {
+        const value = Array.isArray(values) ? values.join(', ') : values;
+        return (
+          <span className={styles.entry}>
+            <span className={styles.key}>{key}</span>
+            <span className={styles.value}>{value}</span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+/*
+  [Data returned by useDexieMonitor every freq]
+ {
+ "subscriptions": 2, // number of tables where live refresh is active
+ "tables": [ // array of tables where live refresh is active
+  "settings",
+  "lists"
+ ],
+ "subscribers": 3, // number of React components subscribed to live refresh
+ "maxActive": 3, // max number of active concurrent transactions to db
+ "active": 0, // current active transactions to db
+ "fulfilled": 3, // total number of transactions to db
+ "avg": "754.33", // average response time of transactions
+ "avgLast10": "754.33" // average last 10 response time of transactions
+}
+*/
 ```
 
 # Query Syntax
