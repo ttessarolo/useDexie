@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.1](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.2.0%0Dv1.2.1) (2021-02-15)
+
+
+### Bug Fixes
+
+* useDexieMonotir clear interval ref to clear on freq = null ([6f8880a](https://github.com/ttessarolo/useDexie/commits/6f8880a41a2e376dd35ee3973faeb7531a2e9d80))
+
 ## [1.2.0](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.1.0%0Dv1.2.0) (2020-12-17)
 
 
