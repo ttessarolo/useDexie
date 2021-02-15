@@ -332,20 +332,26 @@ export function useDexie(name, ...params) {
 
 export const useDexieMonitor = (freq) => {
   const [data, setData] = useState({});
+  const intervalRef = useRef();
 
   useEffect(() => {
-    if (!freq) return null;
+    if (!freq) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return null;
+    }
 
     monitor = true;
 
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       const dispatch = dbDispatcher.getStats();
       const tx = trxMonitor.getStats();
 
       setData({ ...dispatch, ...tx });
     }, freq);
 
-    return () => clearInterval(interval);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [freq]);
 
   return data;
