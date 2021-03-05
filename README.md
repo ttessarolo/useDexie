@@ -924,7 +924,7 @@ Alternatively to the composition of a WhereClause you can directly specify a _si
 
 ```javascript
 {
-  filter: filter: (obj) => ['T1', 'T2'].includes(obj.id);
+  filter: (obj) => ['T1', 'T2'].includes(obj.id);
 }
 ```
 
@@ -936,7 +936,7 @@ The orderBy option can only be activated with filtering and not by specifying a 
 
 ```javascript
 {
-  filter: filter: (obj) => ['T1', 'T2'].includes(obj.id);
+  filter: (obj) => ['T1', 'T2'].includes(obj.id);
   orderBy: 'name';
 }
 ```

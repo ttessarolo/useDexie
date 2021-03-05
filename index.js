@@ -324,7 +324,7 @@ export function useDexie(name, ...params) {
 
     cb && cb(db);
 
-    return () => db && db.close();
+    //return () => db && db.close();
   }, []);
 
   return database;
