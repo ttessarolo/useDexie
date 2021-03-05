@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.2](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.2.1%0Dv1.2.2) (2021-03-05)
+
+
+### Bug Fixes
+
+* dont'close DB on unmount (cleanup fails) + docs review ([5be79ca](https://github.com/ttessarolo/useDexie/commits/5be79ca3429367881064f1a9db3ddad87a6af607))
+
 ### [1.2.1](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.2.0%0Dv1.2.1) (2021-02-15)
 
 
