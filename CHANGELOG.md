@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.2.3](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.2.2%0Dv1.2.3) (2022-05-30)
+
+
+### Others
+
+* change transaction type to rw? ([f434b8e](https://github.com/ttessarolo/useDexie/commits/f434b8e78b27b9aa8c71ba23a11188886b8e5a31))
+
 ### [1.2.2](https://bitbucket.org/ttessarolo/useDexie/branches/compare/v1.2.1%0Dv1.2.2) (2021-03-05)
 
 
