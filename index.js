@@ -113,7 +113,7 @@ const trxMonitor = new TransactionMonitor();
 function executeTransaction(key, query, cb, cbError) {
   let txId = monitor ? trxMonitor.start() : null;
 
-  db.transaction('rw!', db.table(key), (tx) => {
+  db.transaction('rw?', db.table(key), (tx) => {
     return query(tx.table(key));
   })
     .then((data) => {
